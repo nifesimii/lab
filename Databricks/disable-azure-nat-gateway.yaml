@@ -1,0 +1,40 @@
+name: Disable-NAT-Gateway
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: '<your-service-connection-name>'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        echo "Listing NAT Gateways..."
+        az network nat gateway list --resource-group $RESOURCE_GROUP
+
+        echo "Detaching NAT Gateway from subnet..."
+        az network vnet subnet update \
+          --resource-group $RESOURCE_GROUP \
+          --vnet-name $VNET_NAME \
+          --name $SUBNET_NAME \
+          --remove natGateway.id
+
+        echo "Deleting NAT Gateway..."
+        az network nat gateway delete \
+          --resource-group $RESOURCE_GROUP \
+          --name $NAT_GATEWAY_NAME
+
+        echo "Verifying subnet configuration..."
+        az network vnet subnet show \
+          --resource-group $RESOURCE_GROUP \
+          --vnet-name $VNET_NAME \
+          --name $SUBNET_NAME \
+          --query natGateway
+    env:
+      RESOURCE_GROUP: '<your-resource-group>'
+      VNET_NAME: '<your-vnet-name>'
+      SUBNET_NAME: '<your-subnet-name>'
+      NAT_GATEWAY_NAME: '<your-nat-gateway-name>'
+
